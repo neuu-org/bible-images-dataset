@@ -11,9 +11,19 @@ desktop.ini
 *.bak
 logs/
 models/
-# Large data files (use Git LFS or download via scripts)
+
+# Large data files (download via scripts, not tracked in git)
 data/00_raw/wikiart/WikiArt.parquet
 data/00_raw/wikiart/filtered_religious.parquet
+data/00_raw/wikiart/manifest.json
 data/00_raw/wikiart/_tmp_shard_*.tar
 data/00_raw/wikiart/images/
 data/00_raw/wikiart/metadata/
+data/00_raw/wikiart/WikiArt_dataset/
+data/01_mapped/images/
+data/01_mapped/mappings/
+data/02_deduplicated/images/
+data/02_deduplicated/mappings/
+data/03_enriched/embeddings/
+data/03_enriched/mappings/
+data/04_splits/*.json

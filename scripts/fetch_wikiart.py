@@ -293,14 +293,22 @@ def step_metadata(args):
     """Step 1: Download parquet and filter for religious paintings."""
     import pandas as pd
 
-    print("\n=== Step 1: Download WikiArt.parquet ===\n")
+    print("\n=== Step 1: Load WikiArt.parquet ===\n")
     PARQUET_PATH.parent.mkdir(parents=True, exist_ok=True)
 
-    if not download_file(PARQUET_URL, PARQUET_PATH, dry_run=args.dry_run):
-        if args.dry_run:
-            print("\n  [dry-run] Would filter parquet for religious paintings")
+    # Use local parquet from --local-shards if available
+    if args.local_shards:
+        local_parquet = Path(args.local_shards) / "WikiArt.parquet"
+        if local_parquet.exists() and not PARQUET_PATH.exists():
+            print(f"  Copying parquet from local: {local_parquet}")
+            shutil.copy2(local_parquet, PARQUET_PATH)
+
+    if not PARQUET_PATH.exists():
+        if not download_file(PARQUET_URL, PARQUET_PATH, dry_run=args.dry_run):
+            if args.dry_run:
+                print("\n  [dry-run] Would filter parquet for religious paintings")
+                return
             return
-        return
 
     print("\n=== Step 2: Filter for religious/biblical paintings ===\n")
     df = pd.read_parquet(PARQUET_PATH)
@@ -446,25 +454,33 @@ def step_images(args):
             total_skipped += len(shard_keys)
             continue
 
-        shard_url = SHARD_URL_TEMPLATE.format(shard_id)
         print(f"\n  Shard {shard_id:03d}: {need} images to extract ({already_have} already exist)")
 
         if args.dry_run:
-            print(f"  [dry-run] Would download ~5GB shard: {shard_url}")
             total_extracted += need
             total_skipped += already_have
+            print(f"  [dry-run] Would extract {need} images from shard {shard_id:03d}")
             continue
 
-        # Download shard to temp file on E: drive
-        tmp_path = OUTPUT_DIR / f"_tmp_shard_{shard_id:03d}.tar"
-
-        try:
-            if not download_file(shard_url, tmp_path):
+        # Resolve shard path: local or download
+        if args.local_shards:
+            local_dir = Path(args.local_shards)
+            shard_path = local_dir / f"WikiArt_{shard_id:03d}.tar"
+            if not shard_path.exists():
+                print(f"  [skip] Local shard not found: {shard_path}")
+                continue
+            tmp_path = None  # Don't delete local files
+        else:
+            shard_url = SHARD_URL_TEMPLATE.format(shard_id)
+            shard_path = OUTPUT_DIR / f"_tmp_shard_{shard_id:03d}.tar"
+            tmp_path = shard_path
+            if not download_file(shard_url, shard_path):
                 continue
 
+        try:
             # Extract matching files
             print(f"  Extracting {need} images from shard...")
-            with tarfile.open(str(tmp_path), "r") as tar:
+            with tarfile.open(str(shard_path), "r") as tar:
                 for member in tqdm(tar, desc=f"  Shard {shard_id:03d}", leave=False):
                     if not member.isfile():
                         continue
@@ -490,7 +506,8 @@ def step_images(args):
             print(f"  [error] Shard {shard_id:03d}: {e}")
 
         finally:
-            if tmp_path.exists():
+            # Only delete temp files (downloaded shards), never local ones
+            if tmp_path and tmp_path.exists():
                 tmp_path.unlink()
 
     print(f"\n  Total extracted: {total_extracted:,}")
@@ -610,6 +627,12 @@ def main():
         action="append",
         metavar="N",
         help="Only process specific shard(s) 0-19 (e.g., --shard 0 --shard 1)",
+    )
+    parser.add_argument(
+        "--local-shards",
+        type=str,
+        metavar="DIR",
+        help="Path to local directory with WikiArt_XXX.tar files (from torrent download)",
     )
     args = parser.parse_args()
 

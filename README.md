@@ -8,29 +8,37 @@ Part of the [NEUU](https://github.com/neuu-org) biblical scholarship ecosystem.
 
 | Metric | Value |
 |--------|-------|
-| Status | Data collection phase |
-| Target images | ~25,000–30,000 (after deduplication) |
-| Sources | 10+ (museums, archives, academic datasets) |
+| Status | Raw data collected, mapping phase next |
+| Total images | 16,914 |
+| Primary source | WikiArt (Internet Archive dump, 195K paintings) |
+| Unique artists | 1,892 |
 | Verse mapping | OSIS format (BOOK.CHAPTER.VERSE) |
-| License tiers | Public domain, CC0, CC-BY |
-| Embedding model | CLIP ViT-L/14 (768-dim) |
-| Episode classes | ~200–400 (creation, crucifixion, exodus, etc.) |
+| License | Non-commercial research (WikiArt terms) |
 
-## Sources
+## Source
 
-| Source | Type | Est. Images | License | Mapping |
-|--------|------|-------------|---------|---------|
-| Vanderbilt ACT Database | Academic archive | 7,000 | CC | Pre-mapped to scripture |
-| FreeBibleImages | Illustration sets | 5,000 | Free use | Pre-mapped by passage |
-| BibleVSA Dataset | Academic ML dataset | 2,282 | Academic | Pre-mapped with text |
-| Visual Commentary on Scripture | Curated art | 1,200 | CC | Pre-mapped to passage |
-| ArtBible.info | Painting archive | 500 | Public domain | Pre-mapped to KJV |
-| Internet Archive (Doré, Copping) | Historical engravings | 500 | Public domain | Semi-mapped (captions) |
-| Metropolitan Museum API | Museum collection | 3,000 | CC0 | ICONCLASS → verse |
-| Rijksmuseum API | Museum collection | 2,000 | CC0 | ICONCLASS → verse |
-| James Tissot Collection | Biblical watercolors | 733 | CC0 | Semi-mapped (titles) |
-| Wikimedia Commons | Community archive | 2,000 | CC/PD | Title NLP → verse |
-| WikiArt (Religious painting genre) | Art encyclopedia | 12,118 | Non-commercial research | Title NLP → verse |
+Images were extracted from the [WikiArt Internet Archive dataset](https://archive.org/details/WikiArt_dataset) (195,394 paintings, July 2022 scrape). The extraction filtered for religious/biblical content using three criteria:
+
+1. **Genre**: `religious painting` (9,965 paintings)
+2. **Tags**: Biblical keywords — `Christianity`, `Jesus-Christ`, `Moses`, `Crucifixion`, etc. (10,092 matches)
+3. **Title**: Regex patterns matching biblical names, events, and themes (8,041 matches)
+
+Combined (with overlap): **16,914 unique images** from **1,892 artists**.
+
+### Top Artists
+
+| Artist | Images | Curated |
+|--------|--------|---------|
+| Gustave Doré | 301 | yes |
+| Peter Paul Rubens | 235 | yes |
+| Orthodox Icons | 211 | — |
+| James Tissot | 197 | yes |
+| Fra Angelico | 168 | yes |
+| Pietro Perugino | 166 | — |
+| Hieronymus Bosch | 157 | yes |
+| Tintoretto | 156 | yes |
+| El Greco | 136 | yes |
+| Michelangelo | 105 | yes |
 
 > Full source analysis: [SOURCES.md](SOURCES.md)
 
@@ -42,7 +50,7 @@ Part of the [NEUU](https://github.com/neuu-org) biblical scholarship ecosystem.
 
 | Step | Script | Input | Output |
 |------|--------|-------|--------|
-| 0 | — | Source downloads | Raw images + metadata per source |
+| 0 | `fetch_wikiart.py` | WikiArt parquet + tar shards | Raw images + metadata per image |
 | 1 | `normalize_references.py` | 00_raw | 01_mapped (OSIS-normalized mappings) |
 | 2 | `deduplicate.py` | 01_mapped | 02_deduplicated (pHash + CLIP dedup) |
 | 3 | `enrich_clip.py` | 02_deduplicated | 03_enriched (CLIP embeddings + quality scores) |
@@ -53,33 +61,18 @@ Part of the [NEUU](https://github.com/neuu-org) biblical scholarship ecosystem.
 ```
 bible-images-dataset/
 ├── data/
-│   ├── 00_raw/                            # Verbatim downloads per source
-│   │   ├── vanderbilt/
-│   │   ├── freebible/
-│   │   ├── biblevsa/
-│   │   ├── visual_commentary/
-│   │   ├── artbible/
-│   │   ├── internet_archive/
-│   │   ├── met/
-│   │   ├── rijksmuseum/
-│   │   ├── tissot/
-│   │   ├── wikimedia/
-│   │   ├── wikiart/
-│   │   └── manifest.json
-│   ├── 01_mapped/                         # OSIS-normalized references
-│   │   ├── images/{source}/{image_id}.jpg
-│   │   ├── mappings/{source}/{image_id}.json
-│   │   └── index.json
-│   ├── 02_deduplicated/                   # Near-duplicate removal
-│   ├── 03_enriched/                       # CLIP embeddings + quality scores
-│   │   ├── embeddings/
-│   │   └── mappings/
-│   └── 04_splits/                         # ML-ready splits
-│       ├── train.json
-│       ├── val.json
-│       ├── test.json
-│       └── label_map.json
+│   ├── 00_raw/
+│   │   └── wikiart/
+│   │       ├── images/{key}.jpg          # 16,914 images
+│   │       ├── metadata/{key}.json       # Per-image metadata
+│   │       ├── filtered_religious.parquet # Index of all filtered paintings
+│   │       └── manifest.json             # Dataset summary
+│   ├── 01_mapped/                        # OSIS-normalized references (TODO)
+│   ├── 02_deduplicated/                  # Near-duplicate removal (TODO)
+│   ├── 03_enriched/                      # CLIP embeddings + quality scores (TODO)
+│   └── 04_splits/                        # ML-ready splits (TODO)
 ├── scripts/
+│   └── fetch_wikiart.py                  # WikiArt data extraction
 ├── SOURCES.md
 ├── METHODOLOGY.md
 ├── CHANGELOG.md
@@ -89,39 +82,31 @@ bible-images-dataset/
 
 ## Data Format
 
-### Image-Verse Mapping (per image)
+### Per-image metadata (`metadata/{key}.json`)
 
 ```json
 {
-  "image_id": "vanderbilt_001234",
-  "source": "vanderbilt",
-  "source_url": "https://...",
-  "filename": "vanderbilt/vanderbilt_001234.jpg",
-  "title": "The Creation of Adam",
-  "artist": "Michelangelo",
-  "date": "c. 1512",
-  "license": "public_domain",
-  "verses": [
-    {"osis": "GEN.1.27", "confidence": "high", "method": "source_metadata"},
-    {"osis": "GEN.2.7", "confidence": "medium", "method": "iconclass"}
-  ],
-  "episode": "creation",
-  "iconclass_codes": ["71A221"],
-  "quality_score": 85,
-  "clip_verse_similarity": 0.34,
-  "dimensions": {"width": 1200, "height": 800},
-  "sha256": "abc123..."
+  "key": "0005928",
+  "title": "Abraham Journeying Into the Land of Canaan",
+  "artist": "Gustave Doré",
+  "completion": 1866,
+  "styles": ["Romanticism"],
+  "genres": ["religious painting"],
+  "tags": ["Christianity", "Old-Testament", "Prophet"],
+  "media": ["engraving"],
+  "width": 800,
+  "height": 636,
+  "img_url": "https://uploads.wikiart.org/images/gustave-dore/...",
+  "match_reason": "genre;tags;title;artist",
+  "source": "wikiart"
 }
 ```
 
-### ICONCLASS Mapping
-
-[ICONCLASS](https://iconclass.org/) is a hierarchical classification for art where code `7` = Bible, `71` = Old Testament, `73` = New Testament, with drill-down to specific episodes. Museum images tagged with ICONCLASS codes are programmatically mapped to Bible verses via `build_iconclass_mapping.py`.
-
 ## License
 
-Source images carry their original licenses (public domain, CC0, CC-BY). This license applies to the mapping dataset, processing scripts, and documentation.
+Source images carry their original licenses. Works pre-1928 are public domain. WikiArt terms restrict use to non-commercial research.
 
+This license applies to the mapping dataset, processing scripts, and documentation:
 Creative Commons Attribution 4.0 International (CC BY 4.0). See [LICENSE](LICENSE).
 
 ## Citation

@@ -2,8 +2,8 @@
 
 **Componente**: Mapeamento imagem-versiculo para arte biblica
 **Objetivo**: Construir um dataset que associa obras de arte biblica a versiculos especificos, habilitando classificacao de imagens e busca multimodal
-**Versao**: 0.1
-**Data**: 15 de marco de 2026
+**Versao**: 0.2
+**Data**: 16 de marco de 2026
 
 ---
 
@@ -15,133 +15,107 @@ O objetivo final e treinar modelos que, dada uma imagem, identifiquem qual passa
 
 ---
 
-## 2. Fontes de Dados
+## 2. Fonte de Dados
 
-As fontes estao organizadas em tres tiers de prioridade baseados na qualidade do mapeamento imagem-versiculo.
+### WikiArt (Internet Archive dump)
 
-### Tier 1 — Pre-mapeadas
+Fonte primaria: dataset completo do WikiArt hospedado no Internet Archive (195,394 pinturas, scrape de julho 2022).
 
-Fontes que ja fornecem a associacao imagem-versiculo nos seus metadados. Maior confianca, menor esforco de processamento.
+**Formato do dataset original**:
+- 20 shards WebDataset (.tar), ~5GB cada
+- 1 arquivo parquet com metadados de todas as 195K obras
+- CLIP embeddings pre-calculados (ViT-B/32)
 
-- **Vanderbilt ACT Database**: ~7.000 imagens pesquisaveis por referencia biblica
-- **FreeBibleImages**: ~5.000 imagens organizadas por story sets (passagens)
-- **BibleVSA**: 2.282 iluminuras com pares texto-imagem (dataset academico de ML)
-- **Visual Commentary on Scripture**: ~1.200 obras curadas com passagem associada
-- **ArtBible.info**: ~500 pinturas linkadas a passagens KJV
-- **Internet Archive**: ~500 gravuras historicas (Dore, Copping) com legendas biblicas
-
-### Tier 2 — APIs de Museus + ICONCLASS
-
-Fontes com grandes colecoes CC0, onde o mapeamento e feito via codigos ICONCLASS ou NLP sobre titulos/descricoes.
-
-- **Metropolitan Museum API**: ~3.000 imagens biblicas filtradas, CC0
-- **Rijksmuseum API**: ~2.000 imagens com tags ICONCLASS, CC0
-- **James Tissot Collection**: 733 aquarelas biblicas, CC0
-
-### Tier 3 — Complementares
-
-- **Wikimedia Commons**: ~2.000 imagens em categorias de arte biblica
-
-> Detalhes completos de cada fonte em [SOURCES.md](SOURCES.md)
+**Aquisicao**: Download via torrent (103GB total) e extracao seletiva das imagens religiosas/biblicas.
 
 ---
 
-## 3. ICONCLASS — Taxonomia de Arte Biblica
+## 3. Filtragem
 
-[ICONCLASS](https://iconclass.org/) e uma classificacao hierarquica para arte onde:
+O script `fetch_wikiart.py` aplica tres camadas de filtragem sobre o parquet de metadados:
 
-```
-7     = Biblia
-71    = Antigo Testamento
-71A   = Genesis: criacao
-71A2  = Criacao de Adao
-73    = Novo Testamento
-73C   = Paixao de Cristo
-73C7  = Crucificacao
-73D   = Ressurreicao
-```
+### Camada 1: Genero
+Pinturas com `genres` contendo "religious painting".
+- Resultado: 9,965 obras
 
-Museus (Met, Rijksmuseum) tagueiam suas colecoes com codigos ICONCLASS. O script `build_iconclass_mapping.py` converte esses codigos em referencias OSIS, criando a ponte entre metadados museologicos e versiculos.
+### Camada 2: Tags
+Pinturas com `tags` contendo keywords biblicos. Lista curada de ~80 termos em categorias:
+- **Personagens**: Jesus-Christ, Virgin-Mary, Moses, Abraham, Adam, Eve, etc.
+- **Eventos AT**: creation, genesis, flood, babel, exodus, etc.
+- **Eventos NT**: nativity, annunciation, crucifixion, resurrection, last-supper, etc.
+- **Geral**: Christianity, bible, gospel, saint, holy, prayer, etc.
+- Resultado: 10,092 obras
 
-**Processo**:
-1. Download do vocabulario ICONCLASS (subtree "7")
-2. Mapeamento semi-automatico: codigo → passagem biblica (curadoria manual + LLM)
-3. Para imagens de museus: lookup do codigo ICONCLASS → refs OSIS
+### Camada 3: Titulo
+Pinturas cujo titulo faz match com regex patterns biblicos (ex: `\bchrist\b`, `\bmoses\b`, `\bcrucifi`, `\blast\s+supper\b`).
+- Resultado: 8,041 obras
+
+### Resultado combinado
+Uniao das tres camadas: **16,914 imagens unicas** de **1,892 artistas**.
+
+Adicionalmente, o script mantem uma lista curada de ~50 artistas conhecidos por arte biblica (Dore, Rubens, Rembrandt, Fra Angelico, etc.) usada como flag de qualidade (`match_reason` inclui "artist").
 
 ---
 
-## 4. Pipeline de Processamento
+## 4. Extracao
 
-### Fase 0: Aquisicao (00_raw)
+Para cada imagem filtrada, o script extrai do shard `.tar` correspondente:
+- **Imagem JPG**: salva como `data/00_raw/wikiart/images/{key}.jpg`
+- **Metadata JSON**: salva como `data/00_raw/wikiart/metadata/{key}.json`
 
-Download/scrape de cada fonte, armazenamento verbatim sem transformacoes. Cada fonte tem seu subdiretorio com `manifest.json` registrando contagens, datas e URLs.
+O `key` (7 digitos) identifica unicamente cada obra. Os 3 primeiros digitos indicam o shard de origem.
+
+---
+
+## 5. Pipeline de Processamento (proximo)
 
 ### Fase 1: Mapeamento e Normalizacao (01_mapped)
 
-`normalize_references.py`:
+`normalize_references.py` (a implementar):
 
-- **Tier 1**: Extrai refs dos metadados da fonte, normaliza para formato OSIS
-- **Tier 2**: Aplica tabela ICONCLASS → OSIS via `build_iconclass_mapping.py`
-- **Fallback NLP**: Para imagens sem metadata estruturado, usa titulo/descricao com GPT-4o-mini para inferir passagem
-
-Normalizacao de referencias reutiliza o mapeamento `ABBREV_TO_NAME` do [bible-text-dataset](https://github.com/neuu-org/bible-text-dataset).
+- Usar titulo + tags para inferir passagem biblica via NLP
+- Para artistas curados (Dore, Tissot): mapear titulos descritivos como "Abraham Journeying Into the Land of Canaan" → GEN.12.1-5
+- Para imagens com tag `Jesus-Christ` + titulo especifico: mapear a episodio do NT
+- Fallback: LLM para inferencia de passagem a partir do titulo
 
 ### Fase 2: Deduplicacao (02_deduplicated)
 
-`deduplicate.py`:
+`deduplicate.py` (a implementar):
 
-Muitas fontes sobrepoem (mesma gravura de Dore em Vanderbilt, Wikimedia e Internet Archive). Abordagem em dois estagios:
-
-1. **Perceptual hashing** (pHash/dHash via `imagehash`): cluster de imagens com Hamming distance < 8
-2. **CLIP embedding similarity**: para casos limites, cosine similarity > 0.95 = duplicata
-
-Dentro de cada cluster: manter a versao de maior resolucao, mergear mapeamentos de todas as duplicatas.
+1. **Perceptual hashing** (pHash/dHash): cluster de imagens com Hamming distance < 8
+2. **CLIP similarity**: cosine similarity > 0.95 = duplicata
+3. Manter versao de maior resolucao, mergear mapeamentos
 
 ### Fase 3: Enriquecimento (03_enriched)
 
-`enrich_clip.py`:
+`enrich_clip.py` (a implementar):
 
-1. **CLIP embeddings**: Gerar vetores 768-dim com `clip-vit-large-patch14`
-2. **Similarity score**: CLIP(imagem) vs CLIP(texto do versiculo) como sinal de confianca
-3. **Quality score**: Composito de resolucao + CLIP similarity + confianca do mapeamento + confiabilidade da fonte
+1. **CLIP embeddings**: vetores 768-dim com `clip-vit-large-patch14`
+2. **Similarity score**: CLIP(imagem) vs CLIP(texto do versiculo)
+3. **Quality score**: composito de resolucao + CLIP similarity + confianca
 
 ### Fase 4: Splits para ML (04_splits)
 
-`create_splits.py`:
+`create_splits.py` (a implementar):
 
-- Granularidade: **episodio** (~200-400 classes como "criacao", "diluvio", "crucificacao")
+- Granularidade: episodio (~200-400 classes)
 - Split 70/15/15 train/val/test, estratificado por episodio
-- **Artist-aware**: mesmo artista nao aparece em train E test (evitar data leakage)
+- **Artist-aware**: mesmo artista nao aparece em train E test
 
 ---
 
-## 5. Validacao
+## 6. Validacao
 
-### Automatizada (`validate.py`)
-
-1. **Schema**: Todo JSON de mapeamento conforme schema definido
-2. **Referencias OSIS**: Todo `osis` resolve para versiculo valido (livro existe, capitulo/versiculo dentro dos limites)
-3. **Integridade de imagem**: SHA256 confere, arquivo carregavel via PIL, resolucao minima 100x100
-4. **Cobertura**: Distribuicao por livro, testamento, episodio. Flag para categorias sub-representadas
-5. **Duplicatas**: Nenhum `image_id` repetido
-6. **Licenca**: Flag para imagens sem metadata de licenca
+### Automatizada
+1. Schema: todo JSON conforme schema definido
+2. Referencias OSIS: todo `osis` resolve para versiculo valido
+3. Integridade: SHA256 confere, imagem carregavel via PIL, resolucao minima 100x100
+4. Cobertura: distribuicao por livro, testamento, episodio
+5. Duplicatas: nenhum `image_id` repetido
 
 ### Manual
-
-- Amostra de 50 imagens por fonte: verificar se a imagem realmente retrata a passagem mapeada
-- Target: >90% de acuracia para mapeamentos com confianca "high"
-
----
-
-## 6. Metricas de Qualidade
-
-| Metrica | Descricao |
-|---------|-----------|
-| Cobertura por livro | % dos 66 livros com pelo menos 1 imagem |
-| Cobertura AT/NT | Distribuicao de imagens por testamento |
-| CLIP similarity media | Similaridade media CLIP(imagem, versiculo) |
-| Duplicatas removidas | % de imagens eliminadas na deduplicacao |
-| Confianca alta | % de mapeamentos com confianca "high" |
+- Amostra de 50 imagens por fonte: verificar se a imagem retrata a passagem mapeada
+- Target: >90% acuracia para mapeamentos com confianca "high"
 
 ---
 
@@ -150,21 +124,21 @@ Dentro de cada cluster: manter a versao de maior resolucao, mergear mapeamentos 
 ### Viezes conhecidos
 
 - **Viez narrativo**: Passagens narrativas (Genesis, Evangelhos) tem muito mais representacao artistica que livros poeticos ou profeticos
-- **Viez cultural**: Arte ocidental (europeia) domina as fontes, sub-representando tradicoes artisticas orientais, africanas e latino-americanas
+- **Viez cultural**: Arte ocidental (europeia) domina as fontes
 - **Viez temporal**: Maioria das obras sao dos seculos XV-XIX
-- **Viez de episodio**: Cenas como Crucificacao, Natividade e Criacao sao desproporcionalmente representadas
+- **Viez de episodio**: Crucificacao, Natividade e Criacao sao desproporcionalmente representadas
 
 ### Mitigacoes
 
-- Documentar distribuicao de episodios no `index.json`
-- Priorizar fontes diversas (Tissot para NT, Dore para AT)
-- Usar data augmentation para classes sub-representadas no treinamento
+- Documentar distribuicao de episodios
+- Priorizar fontes diversas em futuras iteracoes
+- Data augmentation para classes sub-representadas
 
 ---
 
 ## 8. Casos de Uso
 
-1. **Classificacao de imagens**: Dado uma imagem, prever qual episodio/passagem biblica ela representa
-2. **Busca multimodal**: Texto → imagem (encontrar arte para um versiculo) e imagem → texto (encontrar versiculo para uma arte)
-3. **Enriquecimento da bible-api**: Endpoint `/api/bible/verses/{book}/{ch}/{vs}/images/` retornando arte associada
-4. **Pesquisa acadêmica**: Estudo quantitativo de representacao biblica na historia da arte
+1. **Classificacao de imagens**: dada uma imagem, prever qual episodio/passagem biblica ela representa
+2. **Busca multimodal**: texto → imagem e imagem → texto
+3. **Enriquecimento da bible-api**: endpoint `/api/bible/verses/{book}/{ch}/{vs}/images/`
+4. **Pesquisa academica**: estudo quantitativo de representacao biblica na historia da arte

@@ -1,276 +1,133 @@
 # Fontes de Dados — Bible Images Dataset
 
-Documentacao detalhada de todas as fontes pesquisadas para construcao do dataset de imagens biblicas.
-
 ---
 
-## Tier 1 — Fontes Pre-mapeadas
+## Fonte Primaria — WikiArt (Internet Archive)
 
-Fontes que ja fornecem associacao direta entre imagem e passagem biblica.
-
-### 1. Vanderbilt ACT Database
+### WikiArt Dataset (Internet Archive dump)
 
 | Campo | Valor |
 |-------|-------|
-| URL | https://diglib.library.vanderbilt.edu/act-search.pl |
-| Imagens estimadas | ~7.000 |
-| Licenca | Creative Commons |
-| Acesso | Scrape HTML — busca por referencia biblica |
-| Mapeamento | Pre-mapeado (imagens pesquisaveis por versiculo) |
-| Formatos | JPEG |
-
-A Vanderbilt Divinity Library mantém o Art in the Christian Tradition (ACT), um banco de imagens pesquisavel por referencia biblica. Cada imagem esta associada a uma ou mais passagens, com metadados de artista, periodo e meio.
-
-**Vantagens**: Mapeamento direto imagem-versiculo, curadoria academica, grande volume.
-**Limitacoes**: Necessita scraping HTML, velocidade de download depende do servidor.
-
----
-
-### 2. FreeBibleImages
-
-| Campo | Valor |
-|-------|-------|
-| URL | https://www.freebibleimages.org |
-| Imagens estimadas | ~5.000 (760+ story sets) |
-| Licenca | Uso livre (verificar termos por set) |
-| Acesso | Download por story set (JPEG) |
-| Mapeamento | Pre-mapeado (sets organizados por passagem) |
-| Formatos | JPEG, alta resolucao |
-
-Colecao de ilustracoes biblicas organizadas em "story sets" — cada set cobre uma passagem especifica. Inclui ilustracoes modernas, fotografias de locais biblicos e arte classica.
-
-**Vantagens**: Organizado por passagem, alta resolucao, variedade de estilos.
-**Limitacoes**: Licencas variam por set, algumas imagens sao ilustracoes modernas (diferem do estilo classico).
-
----
-
-### 3. BibleVSA Dataset
-
-| Campo | Valor |
-|-------|-------|
-| Referencia | Dataset academico (verificar disponibilidade) |
-| Imagens | 2.282 iluminuras |
-| Licenca | Academico/pesquisa |
-| Acesso | Download ZIP |
-| Mapeamento | Pre-mapeado (pares texto-imagem) |
-| Formatos | JPEG |
-
-Dataset de ML com 2.282 iluminuras da Biblia de Borso d'Este, cada uma pareada com texto biblico. E o dataset existente mais proximo do nosso objetivo.
-
-**Vantagens**: Ja formatado para ML, pares texto-imagem prontos, dataset academico citavel.
-**Limitacoes**: Apenas iluminuras de uma unica fonte (Borso d'Este), escopo limitado.
-
----
-
-### 4. Visual Commentary on Scripture (VCS)
-
-| Campo | Valor |
-|-------|-------|
-| URL | https://thevcs.org |
-| Imagens estimadas | ~1.200 |
-| Licenca | Creative Commons |
-| Acesso | Scrape paginas de artwork |
-| Mapeamento | Pre-mapeado (cada artwork associado a passagem + 3 obras relacionadas) |
-| Formatos | JPEG |
-
-Projeto academico que associa obras de arte a passagens biblicas com comentarios teologicos. Cada entrada inclui uma passagem biblica e tres obras de arte relacionadas.
-
-**Vantagens**: Curadoria academica de alta qualidade, contexto teologico rico.
-**Limitacoes**: Volume menor, necessita scraping.
-
----
-
-### 5. ArtBible.info
-
-| Campo | Valor |
-|-------|-------|
-| URL | https://www.artbible.info |
-| Imagens estimadas | ~500 |
-| Licenca | Dominio publico |
-| Acesso | Scrape paginas de pinturas |
-| Mapeamento | Pre-mapeado (cada pintura linkada a passagem KJV) |
-| Formatos | JPEG |
-
-Colecao de pinturas classicas organizadas por passagem biblica (KJV). Foco em grandes mestres da pintura europeia.
-
-**Vantagens**: Obras de alta qualidade artistica, mapeamento direto a KJV.
-**Limitacoes**: Volume pequeno, viez para arte europeia renascentista/barroca.
-
----
-
-### 6. Internet Archive — Ilustracoes Historicas
-
-| Campo | Valor |
-|-------|-------|
-| URL | https://archive.org |
-| Imagens estimadas | ~500 |
-| Licenca | Dominio publico |
-| Acesso | Download bulk de colecoes |
-| Mapeamento | Semi-mapeado (legendas com referencia biblica) |
-| Artistas | Gustave Dore (241 gravuras), Harold Copping, Julius Schnorr von Carolsfeld |
-| Formatos | JPEG, TIFF |
-
-Colecoes de ilustracoes biblicas historicas em dominio publico. As gravuras de Dore sao as mais conhecidas e amplamente reproduzidas.
-
-**Vantagens**: Alta qualidade artistica, dominio publico garantido, iconicas.
-**Limitacoes**: Volume limitado por artista, legendas precisam de NLP para extrair refs OSIS.
-
----
-
-## Tier 2 — APIs de Museus + ICONCLASS
-
-Grandes colecoes com licenca CC0, onde o mapeamento imagem-versiculo e feito via codigos ICONCLASS ou NLP sobre titulos.
-
-### 7. Metropolitan Museum of Art API
-
-| Campo | Valor |
-|-------|-------|
-| URL | https://metmuseum.github.io |
-| Imagens biblicas estimadas | ~3.000 (filtradas de 406.000+ objetos) |
-| Licenca | CC0 (dominio publico) |
-| Acesso | REST API (`/public/collection/v1/search?q=bible&isPublicDomain=true`) |
-| Mapeamento | ICONCLASS codes + NLP sobre titulos |
-| Formatos | JPEG (alta resolucao) |
-
-A maior colecao de arte de acesso aberto do mundo. Filtrar por tags "biblical", "Bible", "Old Testament", "New Testament" + `isPublicDomain=true`. Muitos objetos tem tags ICONCLASS nos metadados.
-
-**Vantagens**: Volume massivo, CC0, API REST bem documentada, metadados ricos.
-**Limitacoes**: Necessita filtragem (maioria nao e biblica), ICONCLASS mapping necessario.
-
----
-
-### 8. Rijksmuseum API
-
-| Campo | Valor |
-|-------|-------|
-| URL | https://data.rijksmuseum.nl |
-| Imagens biblicas estimadas | ~2.000 |
-| Licenca | CC0 |
-| Acesso | REST API com chave gratuita, filtro ICONCLASS code "7" |
-| Mapeamento | ICONCLASS codes (nativamente tagueados) |
-| Formatos | JPEG (multiplas resolucoes) |
-
-O Rijksmuseum e especialmente valioso porque muitas obras ja estao tagueadas com codigos ICONCLASS detalhados, facilitando o mapeamento automatico para versiculos.
-
-**Vantagens**: ICONCLASS nativo, CC0, API bem estruturada, arte holandesa de alta qualidade.
-**Limitacoes**: Viez para arte holandesa dos seculos XVI-XVII (Rembrandt, etc.).
-
----
-
-### 9. James Tissot Collection
-
-| Campo | Valor |
-|-------|-------|
-| Colecao | Brooklyn Museum / Jewish Museum / Met |
-| Imagens | 733 aquarelas biblicas |
-| Licenca | CC0 |
-| Acesso | Met API (colecao Brooklyn Museum) + Wikimedia Commons |
-| Mapeamento | Semi-mapeado (titulos descritivos referenciando cenas biblicas) |
-| Formatos | JPEG |
-
-James Tissot (1836-1902) pintou 733 aquarelas retratando a vida de Cristo e cenas do Antigo Testamento. E a maior serie continua de ilustracoes biblicas por um unico artista.
-
-**Vantagens**: Cobertura extensa do NT, estilo unico e consistente, CC0.
-**Limitacoes**: Unico artista (viez de estilo), mapeamento por titulo necessita NLP.
-
----
-
-## Tier 3 — Fontes Complementares
-
-### 10. Wikimedia Commons
-
-| Campo | Valor |
-|-------|-------|
-| URL | https://commons.wikimedia.org |
-| Imagens biblicas estimadas | ~2.000+ |
-| Licenca | CC / Dominio publico (varia por imagem) |
-| Acesso | API MediaWiki, scrape por categoria |
-| Categorias relevantes | "Biblical art", "Paintings of the Old Testament", "Paintings of the New Testament", subcategorias por livro |
-| Mapeamento | NLP sobre titulos/descricoes + categorias |
-| Formatos | JPEG, PNG, SVG |
-
-Wikimedia Commons tem milhares de imagens em categorias de arte biblica. O mapeamento e menos preciso (depende de categorias e titulos).
-
-**Vantagens**: Grande volume, comunidade ativa, metadados de categoria uteis.
-**Limitacoes**: Qualidade variavel, licencas heterogeneas, mapeamento impreciso.
-
----
-
-### 11. Pitts Theology Library (Emory University)
-
-| Campo | Valor |
-|-------|-------|
-| URL | https://dia.pitts.emory.edu |
-| Imagens | 65.000+ ilustracoes biblicas |
-| Licenca | Academico (verificar termos) |
-| Acesso | A verificar |
-| Mapeamento | A verificar |
-
-Potencialmente a maior colecao digital de ilustracoes biblicas. Requer investigacao adicional sobre termos de uso e formato de acesso.
-
----
-
-### 12. Cathopic Public Domain
-
-| Campo | Valor |
-|-------|-------|
-| URL | https://cathopic.com/public-domain |
-| Imagens | Grande colecao (quantidade exata a verificar) |
-| Licenca | Dominio publico |
-| Acesso | Download individual ou bulk |
-| Mapeamento | NLP sobre titulos |
-
-Arte crista classica digitalmente restaurada em dominio publico.
-
----
-
-### 13. WikiArt — Religious Painting Genre
-
-| Campo | Valor |
-|-------|-------|
-| URL | https://www.wikiart.org/en/paintings-by-genre/religious-painting |
-| Imagens no genero "Religious painting" | 12.118 |
-| Imagens no genero "Mythological painting" | 3.315 (sobreposicao parcial) |
+| URL | https://archive.org/details/WikiArt_dataset |
+| Total no dataset | 195,394 imagens |
+| Filtradas (religioso/biblico) | 16,914 imagens |
+| Artistas unicos | 1,892 |
 | Licenca | Uso nao-comercial para pesquisa. Obras pre-1928 sao dominio publico |
-| API oficial | `https://www.wikiart.org/en/Api/2/` (chaves em `/App/GetApi`) |
-| Formatos | JPEG |
+| Acesso | Torrent (103 GB) ou HTTP por shard |
+| Formato | 20 shards WebDataset (.tar) + parquet de metadados |
+| Data do scrape | Julho 2022 |
 
-WikiArt e a maior enciclopedia visual de belas artes, com ~250.000 obras. O genero "Religious painting" contem 12.118 obras — o 5o maior genero da plataforma.
+O dataset do Internet Archive contem toda a colecao WikiArt com metadados ricos em formato parquet.
 
-**Endpoints da API**:
+**Metadados disponiveis por obra**: `title`, `artist`, `completion` (ano), `styles`, `genres`, `tags`, `media`, `width`, `height`, `img_url`, `caption`, `aesthetic` (score), `artist_birth`, `artist_death`, `artist_nations`, `artist_movements`, CLIP embeddings pre-calculados.
 
-| Endpoint | Descricao |
-|----------|-----------|
-| `/login?accessCode=X&secretCode=Y` | Autenticacao, retorna SessionKey |
-| `/Artist/AlphabetJson?v=new&inPublicDomain=true` | Lista artistas em dominio publico |
-| `/Painting/PaintingsByArtist?artistUrl=X&json=2` | Pinturas por artista |
-| `/Painting/ImageJson/{contentId}` | Metadados detalhados + URL da imagem |
+### Filtragem aplicada
 
-**Metadados disponiveis por obra**: title, artist, completion (ano), styles, genres, tags, media, width, height, img_url, caption.
+Tres camadas de filtragem para identificar pinturas biblicas/religiosas:
 
-**Formas de acesso (3 opcoes)**:
+1. **Genero** (`genres` contem "religious painting"): 9,965 obras
+2. **Tags** (keywords biblicos como `Christianity`, `Jesus-Christ`, `Moses`, `Crucifixion`, `Virgin-Mary`, etc.): 10,092 obras
+3. **Titulo** (regex para nomes/eventos biblicos como "Christ", "Madonna", "Crucifixion", "Moses", etc.): 8,041 obras
 
-1. **Hugging Face (mais rapido)**: `load_dataset("huggan/wikiart")` — 81.444 imagens, filtrar `genre == "religious_painting"`. ~5.27 GB total.
-2. **Internet Archive (mais completo)**: 195.394 imagens com metadata em parquet. Filtrar pelo genero antes de baixar imagens. 103 GB total.
-3. **API direta + `dominikwelke/wikiart-collector`**: Filtrar por genero antes de baixar. Requer API keys.
+A uniao dessas camadas resultou em **16,914 imagens unicas**.
 
-**Bibliotecas Python**:
-- `lucasdavid/wikiart` — Retriever completo via API oficial
-- `dominikwelke/wikiart-collector` — Filtragem por genero/estilo antes do download
-- `asahi417/wikiart-image-dataset` — Crawler via API, `pip install .`
-- `sodascience/artscraper` — `pip install artscraper`, requer chaves em `.wiki_api`
+### Distribuicao de tags (top 20 nas pinturas religiosas)
 
-**Datasets pre-processados**:
+| Tag | Contagem |
+|-----|----------|
+| Christianity | 4,515 |
+| saints-and-apostles | 2,242 |
+| Mythology | 2,103 |
+| Jesus-Christ | 1,276 |
+| Virgin-Mary | 864 |
+| Holy places | 852 |
+| Prophet | 751 |
+| angels-and-archangels | 709 |
+| Virgin-and-Child | 614 |
+| Crucifixion | 204 |
+| Old-Testament | 197 |
+| St. John the Baptist | 196 |
+| Annunciation | 151 |
+| Holy-Family | 133 |
+| St.-Peter | 99 |
+| Cross | 96 |
+| Moses | 84 |
 
-| Fonte | Imagens | Tamanho | URL |
-|-------|---------|---------|-----|
-| Hugging Face `huggan/wikiart` | 81.444 | 5.27 GB | huggingface.co/datasets/huggan/wikiart |
-| Internet Archive (completo) | 195.394 | 103 GB | archive.org/details/WikiArt_dataset |
-| Kaggle (steubk) | ~80.000+ | Variavel | kaggle.com/datasets/steubk/wikiart |
+### Top 20 artistas
 
-**Estrategia recomendada**: Usar o dataset do Hugging Face, filtrar por `genre == "religious_painting"`, extrair metadata e imagens. Depois aplicar NLP sobre titulos (ex: "The Baptism of Christ" → Mat 3:13-17) para mapear a versiculos.
+| Artista | Obras | Curado |
+|---------|-------|--------|
+| Gustave Doré | 301 | sim |
+| Giovanni Battista Piranesi | 245 | — |
+| Peter Paul Rubens | 235 | sim |
+| Orthodox Icons | 211 | — |
+| James Tissot | 197 | sim |
+| Fra Angelico | 168 | sim |
+| Pietro Perugino | 166 | — |
+| Hieronymus Bosch | 157 | sim |
+| Tintoretto | 156 | sim |
+| Bartolomé Esteban Murillo | 151 | sim |
+| Romanesque Architecture | 144 | — |
+| El Greco | 136 | sim |
+| Hans Memling | 129 | sim |
+| Francisco de Zurbarán | 127 | sim |
+| Raphael | 114 | sim |
+| Paolo Veronese | 114 | sim |
+| Titian | 114 | sim |
+| Sandro Botticelli | 109 | sim |
+| Michelangelo | 105 | sim |
+| Palma il Giovane | 104 | — |
 
-**Papers academicos que usaram WikiArt**: Karayev et al. 2013 (style recognition, 100K images), Saleh & Elgammal 2015 (genre/style classification), ArtGAN 2017.
+### Script de extracao
+
+```bash
+# Pipeline completo (com shards locais do torrent)
+python scripts/fetch_wikiart.py --local-shards /path/to/WikiArt_dataset
+
+# Apenas metadata + filtragem
+python scripts/fetch_wikiart.py --step metadata
+
+# Apenas extracao de imagens
+python scripts/fetch_wikiart.py --step images --local-shards /path/to/WikiArt_dataset
+
+# Dry-run
+python scripts/fetch_wikiart.py --dry-run
+
+# Filtrar por artista
+python scripts/fetch_wikiart.py --step images --artist gustave-dore --local-shards /path/to/shards
+```
+
+---
+
+## Fontes Futuras (a explorar)
+
+Fontes adicionais que podem complementar o dataset em iteracoes futuras.
+
+### Tier 1 — Pre-mapeadas (imagem ja associada a passagem)
+
+| Fonte | Est. Imagens | Licenca | Acesso |
+|-------|-------------|---------|--------|
+| Vanderbilt ACT Database | ~7,000 | CC | Scrape HTML |
+| FreeBibleImages | ~5,000 | Uso livre | Download por story set |
+| BibleVSA Dataset | 2,282 | Academico | Download ZIP |
+| Visual Commentary on Scripture | ~1,200 | CC | Scrape HTML |
+| ArtBible.info | ~500 | Dominio publico | Scrape HTML |
+
+### Tier 2 — APIs de Museus + ICONCLASS
+
+| Fonte | Est. Imagens | Licenca | Acesso |
+|-------|-------------|---------|--------|
+| Metropolitan Museum API | ~3,000 | CC0 | REST API |
+| Rijksmuseum API | ~2,000 | CC0 | REST API + ICONCLASS |
+| James Tissot Collection | 733 | CC0 | Met API / Wikimedia |
+
+### Tier 3 — Complementares
+
+| Fonte | Est. Imagens | Licenca |
+|-------|-------------|---------|
+| Wikimedia Commons | ~2,000 | CC/PD (varia) |
+| Pitts Theology Library | 65,000+ | Academico |
+| Cathopic Public Domain | A verificar | Dominio publico |
 
 ---
 
@@ -282,12 +139,8 @@ WikiArt e a maior enciclopedia visual de belas artes, com ~250.000 obras. O gene
 7       Biblia
 ├── 71  Antigo Testamento
 │   ├── 71A  Genesis: criacao, Adao e Eva
-│   ├── 71B  Genesis: depois da queda
 │   ├── 71C  Genesis: Noe
 │   ├── 71D  Genesis: Abraao
-│   ├── 71E  Genesis: Isaque, Jaco, Esau
-│   ├── 71F  Genesis: Jose
-│   ├── 71H  historias de reis e profetas
 │   └── ...
 ├── 73  Novo Testamento
 │   ├── 73A  Infancia e juventude de Cristo
@@ -295,43 +148,6 @@ WikiArt e a maior enciclopedia visual de belas artes, com ~250.000 obras. O gene
 │   ├── 73C  Paixao de Cristo
 │   ├── 73D  Ressurreicao e aparicoes
 │   └── ...
-└── 71/73 subcodigos drillam ate episodios especificos
 ```
 
-**Por que e importante**: Museus como Met e Rijksmuseum tagueiam suas colecoes com ICONCLASS. Ao construir uma tabela `ICONCLASS code → passagem biblica OSIS`, podemos mapear automaticamente milhares de imagens de museus a versiculos.
-
----
-
-## Dataset Academico Existente
-
-### BibleVSA (mais proximo do nosso objetivo)
-
-O BibleVSA e o dataset de ML mais proximo do que estamos construindo. Contem 2.282 iluminuras da Biblia de Borso d'Este (seculo XV) com pares texto-imagem. Pode servir como baseline para avaliacao do nosso pipeline.
-
-### ArtDL
-
-42.479 pinturas com 19 classes de santos (ICONCLASS). Foco em iconografia de santos, nao diretamente em passagens biblicas, mas util para pre-treino de features visuais religiosas.
-
-### ICONCLASS AI Test Set
-
-~87.500 imagens com codigos ICONCLASS hierarquicos. Filtrando codigo "7" (Biblia), fornece imagens ja classificadas por episodio biblico.
-
----
-
-## Resumo de Estimativas
-
-| Tier | Fontes | Imagens brutas | Apos dedup |
-|------|--------|----------------|------------|
-| 1 — Pre-mapeadas | 6 fontes | ~16.500 | ~14.000 |
-| 2 — Museus + ICONCLASS | 3 fontes | ~5.700 | ~5.000 |
-| 3 — Complementares (Wikimedia, Pitts, Cathopic, WikiArt) | 4+ fontes | ~14.000+ | ~10.000 |
-| **Total** | **13+** | **~36.000** | **~25.000–30.000** |
-
----
-
-## Proximos Passos
-
-1. Validar acesso e termos de uso de cada fonte Tier 1
-2. Construir tabela ICONCLASS → OSIS (curadoria semi-automatica)
-3. Implementar scripts de scraping/fetch para cada fonte
-4. Coletar amostra piloto (100 imagens) para validar pipeline
+Museus como Met e Rijksmuseum tagueiam colecoes com ICONCLASS. Ao construir uma tabela `ICONCLASS code → passagem OSIS`, podemos mapear automaticamente imagens de museus a versiculos.
